@@ -42,8 +42,8 @@ function bundle_adjustment!(
         LeastSquaresProblem(θ0, Y, residue!, sparsity, g!), optimizer;
         iterations=5, show_trace,
     )
-    θ1 = Y1.minimizer
-    n_outliers = _ba_detect_outliers!(cache, θ1, camera; repr_ϵ)
+    θ1 = Y1.minimizer  # 当前得到的参数, R,t,points
+    n_outliers = _ba_detect_outliers!(cache, θ1, camera; repr_ϵ)   # 剔除异常
     @debug "BA N Outliers $n_outliers."
 
     ignore_outliers = true
@@ -100,13 +100,13 @@ function _ba_detect_outliers!(cache, θ, camera::Camera; repr_ϵ, depth_ϵ = 1e-
 
     n_outliers = 0
     @simd for i in 1:n_observations
-        T = @view(poses[:, cache.poses_ids[i]])
-        pt = @view(points[:, cache.points_ids[i]])
-        pt = RotZYX(T[1:3]...) * pt .+ T[4:6]
-        Δ = @view(cache.pixels[:, i]) .- project(camera, pt) # (y, x) format
+        T = @view(poses[:, cache.poses_ids[i]])   # 位姿
+        pt = @view(points[:, cache.points_ids[i]])  # 3D point
+        pt = RotZYX(T[1:3]...) * pt .+ T[4:6]    # 3D point
+        Δ = @view(cache.pixels[:, i]) .- project(camera, pt) # (y, x) format. residue
 
         outlier = pt[3] < depth_ϵ || (Δ[1]^2 + Δ[2]^2) > repr_ϵ
-        cache.outliers[i] = outlier
+        cache.outliers[i] = outlier  # bool, make mask
         outlier && (n_outliers += 1;)
     end
     n_outliers
