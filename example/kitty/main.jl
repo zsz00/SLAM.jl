@@ -1,19 +1,21 @@
 using BSON: @save, @load
 using GeometryBasics
-using GLMakie
+using CairoMakie  # GLMakie
 using SLAM
+using ProgressMeter
+using FileIO
 
 include("kitty.jl")
 
 function main(n_frames)
-    base_dir = "/home/pxl-th/Downloads/kitty-dataset/"
-    sequence = "02"
+    base_dir = "/mnt/zy_data/kitty-dataset/"
+    sequence = "00"
     stereo = true
 
     dataset = KittyDataset(base_dir, sequence; stereo)
     println(dataset)
 
-    save_dir = joinpath("/home/pxl-th/projects", "kitty-$sequence")
+    save_dir = joinpath("/mnt/zy_data/kitty-dataset/projects", "kitty-$sequence")
     isdir(save_dir) || mkdir(save_dir)
     @info "Save directory: $save_dir"
 
@@ -23,8 +25,7 @@ function main(n_frames)
     # height, width = 370, 1226
 
     camera = SLAM.Camera(fx, fy, cx, cy, 0, 0, 0, 0, height, width)
-    right_camera = SLAM.Camera(
-        fx, fy, cx, cy, 0, 0, 0, 0, height, width; Ti0=dataset.Ti0)
+    right_camera = SLAM.Camera(fx, fy, cx, cy, 0, 0, 0, 0, height, width; Ti0=dataset.Ti0)
 
     params = Params(;
         stereo,
@@ -41,7 +42,7 @@ function main(n_frames)
     slam_manager_thread = Threads.@spawn run!(slam_manager)
 
     t1 = time()
-    for i in 1:n_frames
+    @showprogress for i in 1:n_frames
         timestamp = dataset.timestamps[i]
         left_frame, right_frame = dataset[i]
         left_frame = Gray{Float64}.(left_frame)
@@ -82,13 +83,14 @@ function main(n_frames)
 end
 
 function replay(n_frames)
-    base_dir = "/home/pxl-th/Downloads/kitty-dataset/"
-    sequence = "02"
+    base_dir = "/mnt/zy_data/kitty-dataset/"
+    sequence = "00"
+    stereo = true
 
-    dataset = KittyDataset(base_dir, sequence; stereo=false)
+    dataset = KittyDataset(base_dir, sequence; stereo)
     println(dataset)
 
-    save_dir = joinpath("/home/pxl-th/projects", "kitty-$sequence")
+    save_dir = joinpath("/mnt/zy_data/kitty-dataset/projects", "kitty-$sequence")
     isdir(save_dir) || mkdir(save_dir)
     @info "Save directory: $save_dir"
 
@@ -117,4 +119,14 @@ function replay(n_frames)
     @info "Visualization took: $(t2 - t1) seconds."
 
     visualizer
+    save(joinpath(save_dir, "out_1.jpg"), visualizer.image)  # image  figure
+    display(visualizer)
 end
+
+
+# main(4541)
+replay(4541)
+
+
+# 可正常运行, 就是plot和save_plot时没成功. 
+# http://www.cvlibs.net/datasets/kitti/eval_odometry.php   vslam, kitti

@@ -30,8 +30,7 @@ const Point3f0 = SVector{3, Float32}
 const SE3 = SpecialEuclidean(3)
 
 @inline convert(x::Point2f)::Point2i = x .|> round .|> Int64
-@inline convert(x::Vector{Point2f}) =
-    Point2i[xi .|> round .|> Int64 for xi in x]
+@inline convert(x::Vector{Point2f}) = Point2i[xi .|> round .|> Int64 for xi in x]
 
 @inline to_homogeneous(p::SVector{3, T}) where T = SVector{4, T}(p..., one(T))
 @inline to_homogeneous(p::SVector{4}) = p
